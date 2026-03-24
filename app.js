@@ -8,6 +8,7 @@ const ejsMate = require("ejs-mate");
 const wrapAsync = require("./utils/WrapAsync.js");
 const ExpressError = require("./utils/ExpressErr.js")
 const listingSchema = require('./schema.js')
+const Review = require("./models/reviews.js"); 
 
 
 //CONNECTING WITH MOONGOOSE
@@ -50,6 +51,18 @@ const validateListing = (req,res,next) => {
     } else {
         next();
     }
+}
+
+
+//validate review middleware
+const validateReview = (req,res,next) => {
+    let {error} = reviewSchema.validate(req.body);
+    if(error) {
+        let errMsg = error.details.map((el)=>el.message).join(",")
+        throw(new ExpressError(400,errMsg))
+    } else {
+        next();
+    }  
 }
 
 //INDEX ROUTE (2)
@@ -99,10 +112,47 @@ app.delete('/listings/:id',wrapAsync( async(req,res) => {
    res.redirect('/listings'); 
 }))
 
+//Review Create Post Route (6)
+app.post('/listings/:id/reviews',wrapAsync(async (req,res) => {
+    const listing = await Listing.findById(req.params.id);
+    const newReview = new Review(req.body.review);
+    listing.reviews.push(newReview);   
+
+    await newReview.save();
+    await listing.save();
+
+    console.log(newReview);
+
+    res.redirect(`/listings/${listing._id}`);
+}));
+
+//review delete route (7)
+app.delete('/listings/:id/reviews/:reviewId',wrapAsync(async (req,res) => {   
+    const {id, reviewId} = req.params; //destructuring the listing id and review id from the request parameters
+    await Listing.findByIdAndUpdate(id, {$pull: {reviews: reviewId}}); //mongoose operator to pull the review id from the reviews array of the listing
+    await Review.findByIdAndDelete(reviewId); //deleting the review document from the reviews collection
+    res.redirect(`/listings/${id}`); //redirecting back to the listing show page after deletion
+}))
+
+
+
+//server side validation for review
+app.post('/listings/:id/reviews',validateReview,wrapAsync(async (req,res) => {
+    const listing = await Listing.findById(req.params.id);
+    const {error} = reviewSchema.validate(req.body.review);
+    if(error) {
+        let errMsg = error.details.map((el)=>el.message).join(",")
+        throw(new ExpressError(400,errMsg))
+    } else {
+        const newReview = new Review(req.body.review);
+        listing.reviews.push(newReview);
+    }
+}));
+
 //SHOW ROUTE (3)
 app.get('/listings/:id' ,wrapAsync(async (req,res) => {
     let {id} = req.params;
-    const listing = await Listing.findById(id);
+    const listing = await Listing.findById(id).populate("reviews");
     res.render("listings/show.ejs", {listing});
 }));
 
@@ -126,6 +176,7 @@ app.use((req, res, next) => {
 app.use((err, req, res, next) => {
     let { statusCode = 500, message = "Something went wrong" } = err;
     res.status(statusCode).render("listings/error.ejs", {message});
+
     //res.status(statusCode).send(message);
 });
 
