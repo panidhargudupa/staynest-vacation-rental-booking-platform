@@ -1,3 +1,7 @@
+if(process.env.NODE_ENV !== "production"){ // Check if the application is not running in a production environment, which allows you to load environment variables from a .env file during development without affecting the production environment where environment variables are typically set differently.
+    require("dotenv").config(); // Load environment variables from a .env file into process.env, allowing you to keep sensitive information like database credentials and API keys out of your source code and easily manage them in a separate configuration file.
+}
+
 // IMPORTS REQUIRED MODULES
 const express = require("express");
 const app = express();

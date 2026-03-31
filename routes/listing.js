@@ -6,62 +6,34 @@ const wrapAsync = require("../utils/WrapAsync");
 const { validateListing, isAuthor } = require("../middleware");
 const { isLoggedIn } = require("../middleware"); // Importing the isLoggedIn middleware to protect certain routes
 
-// INDEX
-router.get("/", wrapAsync(async (req,res)=>{
-    const allListings = await Listing.find({});
-    res.render("listings/index",{ allListings });
-}));
+const multer = require("multer"); // Importing multer, a middleware for handling multipart/form-data, which is primarily used for uploading files.
+const { storage } = require("../cloudconfig"); // Importing the storage configuration from the cloudconfig file, which is set up to use Cloudinary for storing uploaded files.
+const upload = multer({ storage }); // Configuring multer to store uploaded files in the "uploads" directory
 
-// NEW
-router.get("/new",isLoggedIn, (req,res)=>{ // Only logged in users can access the form to create a new listing
-    res.render("listings/new");
-});
+const listingController = require("../controllers/listings");// Importing the listing controller to handle the logic for each route
 
-// SHOW
-router.get("/:id", wrapAsync(async(req,res)=>{
-    const listing = await Listing.findById(req.params.id)
-    // Populate the reviews and owner fields to display the associated data in the listing details page
-        .populate({path: "reviews",populate: { path: "author" } }) // Populate the reviews and their authors(nested population )
-        .populate("owner"); 
-    if(!listing) {
-          req.flash("error", "Listing not found!");
-          return res.redirect("/listings");
+
+router.route("/") // Defining routes for the root path of listings
+          //Index Route
+          .get(wrapAsync(listingController.index)) // Route to display all listings, using the index method from the listing controller, wrapped in the wrapAsync utility to handle any asynchronous errors that may occur during the execution of the route handler.
+          // Create Route
+          .post(isLoggedIn,validateListing,
+                    upload.single("listing[image]"), // Middleware to handle the file upload for the listing image, allowing users to upload a single image file associated with the listing, and specifying the field name in the form as "listing[image]" to match the expected format for handling nested form data in Express.
+                    wrapAsync(listingController.create)); // Route to handle the creation of a new listing, protected by both the isLoggedIn and isAuthor middleware to ensure that only authenticated users who are the authors can create a listing, and using the create method from the listing controller to handle the logic for creating a new listing, wrapped in the wrapAsync utility to handle any asynchronous errors that may occur during the execution of the route handler.
           
-    }
-    res.render("listings/show",{ listing });
-}));
+// NEW
+router.get("/new",isLoggedIn, listingController.new); // Route to display the form for creating a new listing, protected by the isLoggedIn middleware to ensure that only authenticated users can access this route, and using the new method from the listing controller to render the form view.
+
+
+router.route("/:id") // Defining routes for a specific listing identified by its ID
+          // Show Route
+          .get(wrapAsync(listingController.show)) // Route to display the details of a specific listing, identified by its ID in the URL, using the show method from the listing controller to fetch the listing data and render the appropriate view, wrapped in the wrapAsync utility to handle any asynchronous errors that may occur during the execution of the route handler.
+          // Update Route
+          .put(isLoggedIn,isAuthor,validateListing ,wrapAsync(listingController.update)) // Route to handle the updating of an existing listing, identified by its ID in the URL, protected by both the isLoggedIn and isAuthor middleware to ensure that only authenticated users who are the authors can update a listing, and using the update method from the listing controller to handle the logic for updating the listing, wrapped in the wrapAsync utility to handle any asynchronous errors that may occur during the execution of the route handler.
+          // Delete Route
+          .delete(isLoggedIn,isAuthor, wrapAsync(listingController.delete)); // Route to handle the deletion of an existing listing, identified by its ID in the URL, protected by both the isLoggedIn and isAuthor middleware to ensure that only authenticated users who are the authors can delete a listing, and using the delete method from the listing controller to handle the logic for deleting the listing, wrapped in the wrapAsync utility to handle any asynchronous errors that may occur during the execution of the route handler.
 
 // EDIT
-router.get("/:id/edit",isLoggedIn,isAuthor, wrapAsync(async(req,res)=>{
-    const listing = await Listing.findById(req.params.id);
-    res.render("listings/edit",{ listing });
-}));
-
-// CREATE
-router.post("/", isLoggedIn,isAuthor, validateListing ,wrapAsync(async(req,res)=>{ // Only logged in users can create a new listing, and the listing data is validated using the validateListing middleware
-    const newListing = new Listing(req.body.listing);
-    newListing.owner = req.user._id; // Set the owner of the listing to the currently logged in user
-    await newListing.save();
-    if(!newListing) {
-          req.flash("error", "Failed to create listing!");  
-          res.redirect("/listings/new");
-    }     
-    req.flash("success", "Listing created successfully!");
-    res.redirect("/listings");
-}));
-
-// UPDATE
-router.put("/:id", isLoggedIn,isAuthor,validateListing ,wrapAsync(async(req,res)=>{
-    await Listing.findByIdAndUpdate(req.params.id,{...req.body.listing});
-     req.flash("success", "Updated successfully!");
-    res.redirect(`/listings/${req.params.id}`);
-}));
-
-// DELETE
-router.delete("/:id",isLoggedIn,isAuthor, wrapAsync(async(req,res)=>{
-    await Listing.findByIdAndDelete(req.params.id);
-    req.flash("success", "Listing deleted successfully!");
-    res.redirect("/listings");
-}));
+router.get("/:id/edit",isLoggedIn,isAuthor, wrapAsync(listingController.edit)); // Route to display the form for editing an existing listing, identified by its ID in the URL, protected by both the isLoggedIn and isAuthor middleware to ensure that only authenticated users who are the authors of the listing can access this route, and using the edit method from the listing controller to fetch the listing data and render the edit form view, wrapped in the wrapAsync utility to handle any asynchronous errors that may occur during the execution of the route handler.
 
 module.exports = router;

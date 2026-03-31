@@ -6,46 +6,20 @@ const Review = require("../models/reviews");
 const wrapAsync = require("../utils/WrapAsync");
 const { validateReview, isLoggedIn,  isReviewAuth } = require("../middleware");
 
+const reviewController = require("../controllers/reviews"); // Importing the review controller to handle the logic for each review-related route
 
 
 // CREATE REVIEW
 router.post(
     "/",
-    isLoggedIn,
-    validateReview,
-    wrapAsync(async (req, res) => {
-        const listing = await Listing.findById(req.params.id);
-
-        const newReview = new Review(req.body.review);
-
-        newReview.author = req.user._id;
-
-        listing.reviews.push(newReview);
-
-        await newReview.save();
-        await listing.save();
-
-        req.flash("success", "New review created successfully!");
-
-        res.redirect(`/listings/${listing._id}`);
-    })
-);
+    isLoggedIn,validateReview,
+    wrapAsync(reviewController.createReview)); // Route to handle the creation of a new review for a specific listing, protected by the isLoggedIn middleware to ensure that only authenticated users can create reviews, and using the validateReview middleware to validate the review data before passing it to the createReview method from the review controller, wrapped in the wrapAsync utility to handle any asynchronous errors that may occur during the execution of the route handler.
 
 
 // DELETE REVIEW
-router.delete("/:reviewId",isLoggedIn,isReviewAuth, wrapAsync(async (req, res) => { // Only logged in users who are the authors of the review can delete it
-
-    const { id, reviewId } = req.params;
-
-    await Listing.findByIdAndUpdate(id, {
-        $pull: { reviews: reviewId }
-    });
-
-    await Review.findByIdAndDelete(reviewId);
-
-     req.flash("success", "deleted review successfully!");
-    res.redirect(`/listings/${id}`);
-}));
+router.delete("/:reviewId",
+    isLoggedIn,isReviewAuth, 
+    wrapAsync(reviewController.deleteReview)); // Route to handle the deletion of an existing review, identified by its ID in the URL, protected by both the isLoggedIn and isReviewAuth middleware to ensure that only authenticated users who are the authors of the review can delete it, and using the deleteReview method from the review controller to handle the logic for deleting the review, wrapped in the wrapAsync utility to handle any asynchronous errors that may occur during the execution of the route handler.
 
 
 module.exports = router;

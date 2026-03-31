@@ -5,62 +5,28 @@ const User = require("../models/user.js");
 const passport = require("passport");
 const { saveRedirectUrl } = require("../middleware.js");
 
-
-// Render the signup form for new users get request
-router.get("/signup", (req, res) => {
-    res.render("users/signup.ejs");
-});
-
-// Handle user registration POST request
-router.post("/signup", WrapAsync(async (req, res) => {
-          try {
-          const { username, email, password } = req.body;
-          const newUser = new User({ username, email });
-          const registerUser = await User.register(newUser, password)
-          console.log(registerUser);
-          // Automatically log in the user after successful registration
-          req.login(registerUser, err => {
-                    if (err) {
-                              return next(err);
-                    }
-                    req.flash("success", "Welcome to Airbnb!");
-                    res.redirect("/listings");
-                });  
-          } catch (e) {
-                    req.flash("error", e.message);
-                    res.redirect("/signup");
-          }
-}));
+const userController = require("../controllers/users"); // Importing the user controller to handle the logic for each user-related route
+const user = require("../models/user.js");
 
 
+router.route("/signup")
+    // Render the signup form for new users get request
+    .get( userController.renderSignupForm) // Route to render the signup form for new users, using the renderSignupForm method from the user controller to handle the logic for rendering the form.
+    // Handle user registration POST request
+    .post(WrapAsync(userController.registerUser)); // Route to handle the registration of a new user, using the registerUser method from the user controller to handle the logic for registering the user, wrapped in the WrapAsync utility to handle any asynchronous errors that may occur during the execution of the route handler.
 
-// Render the login form for existing users get request
-router.get("/login", (req, res) => {
-    res.render("users/login.ejs");
-});
-
-// Handle user login POST request
-router.post("/login",
-    saveRedirectUrl, passport.authenticate("local", {
+    
+router.route("/login")
+    // Render the login form for existing users get request
+    .get(userController.renderLoginForm) // Route to render the login form for existing users, using the renderLoginForm method from the user controller to handle the logic for rendering the form.
+    // Handle user login POST request
+    .post(saveRedirectUrl, passport.authenticate("local", {
         failureRedirect: "/login",
         failureFlash: true
-    }),
-    async (req, res) => {
-        req.flash("success", "Welcome Back!");
-        let redirectUrl = res.locals.redirectUrl || "/listings"; // Use the redirect URL stored in res.locals if available, otherwise default to "/listings"
-        res.redirect(redirectUrl);
-    }
-);
+    }),userController.postlogoutUser);
+
 
 // Handle user logout GET request
-router.get("/logout", (req, res) => {
-    req.logout((err) => {
-        if (err) {
-            return next(err); 
-        }
-        req.flash("success", "Logged out successfully!");
-        res.redirect("/listings");
-    });
-});
+router.get("/logout", userController.getlogoutUser); // Route to handle user logout, using the logoutUser method from the user controller to handle the logic for logging out the user.
 
 module.exports = router;
