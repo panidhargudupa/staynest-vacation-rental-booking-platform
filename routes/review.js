@@ -3,7 +3,7 @@ const router = express.Router({ mergeParams: true });
 
 const Listing = require("../models/listing");
 const Review = require("../models/reviews");
-const wrapAsync = require("../utils/WrapAsync");
+const wrapAsync = require("../utils/wrapAsync");
 const { validateReview, isLoggedIn,  isReviewAuth } = require("../middleware");
 
 const reviewController = require("../controllers/reviews"); // Importing the review controller to handle the logic for each review-related route

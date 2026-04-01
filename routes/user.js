@@ -1,5 +1,5 @@
 const express = require("express");
-const WrapAsync = require("../utils/WrapAsync");
+const wrapAsync = require("../utils/wrapAsync");
 const router = express.Router();
 const User = require("../models/user.js");
 const passport = require("passport");
@@ -13,7 +13,7 @@ router.route("/signup")
     // Render the signup form for new users get request
     .get( userController.renderSignupForm) // Route to render the signup form for new users, using the renderSignupForm method from the user controller to handle the logic for rendering the form.
     // Handle user registration POST request
-    .post(WrapAsync(userController.registerUser)); // Route to handle the registration of a new user, using the registerUser method from the user controller to handle the logic for registering the user, wrapped in the WrapAsync utility to handle any asynchronous errors that may occur during the execution of the route handler.
+    .post(wrapAsync(userController.registerUser)); // Route to handle the registration of a new user, using the registerUser method from the user controller to handle the logic for registering the user, wrapped in the WrapAsync utility to handle any asynchronous errors that may occur during the execution of the route handler.
 
     
 router.route("/login")
