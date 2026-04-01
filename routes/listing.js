@@ -7,7 +7,7 @@ const { validateListing, isAuthor } = require("../middleware");
 const { isLoggedIn } = require("../middleware"); // Importing the isLoggedIn middleware to protect certain routes
 
 const multer = require("multer"); // Importing multer, a middleware for handling multipart/form-data, which is primarily used for uploading files.
-const { storage } = require("../cloudconfig"); // Importing the storage configuration from the cloudconfig file, which is set up to use Cloudinary for storing uploaded files.
+const { storage } = require("../cloudConfig"); // Importing the storage configuration from the cloudconfig file, which is set up to use Cloudinary for storing uploaded files.
 const upload = multer({ storage }); // Configuring multer to store uploaded files in the "uploads" directory
 
 const listingController = require("../controllers/listings");// Importing the listing controller to handle the logic for each route
